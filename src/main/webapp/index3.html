@@ -6,11 +6,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css">
 <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
-
-
 <script src="https://unpkg.com/mithril/mithril.js"></script>
 
 </head>
@@ -18,115 +15,168 @@
 
 <script>	
 
-var DiceGame={
-  turn : 0,
-  d1 : 1,
-  d2 : 1,
-  name : 'spock',
-  score : 0,
+var DiceGame = {
+  turn: 0,
+  d1: 1,
+  d2: 1,
+  name: 'spock',
+  score: 0,
 
   play: function() {
- 	if (this.turn < 10) {
-   	  this.d1 = Math.floor((Math.random() * 5) + 1);
-	  this.d2 = Math.floor((Math.random() * 5) + 1);
-	  if (this.d1 + this.d2 == 7) {
-	    this.score += 10;
-	  }
-	  this.turn++;
-	} else {
-		Score.save(this.score,this.name);
-		this.turn=0;
-		this.score=0;
-	}
-   }
- } // DiceGame
+    if (this.turn < 10) {
+      this.d1 = Math.floor((Math.random() * 5) + 1);
+      this.d2 = Math.floor((Math.random() * 5) + 1);
+      if (this.d1 + this.d2 == 7) {
+        this.score += 10;
+      }
+      this.turn++;
+    } else {
+      Score.save(this.score, this.name);  // Sauvegarder le score local
+      this.turn = 0;
+      this.score = 0;
+    }
+  }
+} // DiceGame
 
-var DiceView={
-	view: function() {
-		return m('div', [
-			m('div',{class:'subtitle'},"Just play here"),
-			m("input[type=text][placeholder=name]", {
-				value: DiceGame.name,
-				class: 'input is-rounded',
-				 oninput: function (e) {
-					 DiceGame.name=e.target.value},
-				 }),
-			m('div',{class:'level'},[
-			 m('label',{class:'level-item'},"turn:"+DiceGame.turn),
-			 m('label',{class:'level-item'},"score:"+DiceGame.score),
-			]),
-			m('label',{class:'label'},"Dice 1:"+DiceGame.d1),
-			m('label',{class:'label'},"Dice 2:"+DiceGame.d2),
-			m('button',{
-				class: 'button is-link',
-				onclick: function(e) {DiceGame.play()}
-			    },"play"),
-		])
-	}	
-}
- 
-var Score = {
-	    list: [],
-	    loadList: function() {
-	        return m.request({
-	            method: "GET",
-	            url: "_ah/api/myApi/v1/topscores/"
-	        })
-	        .then(function(result) {
-	            Score.list = result.items
-	        	console.log("got:",result.items)
-	        	// m.redraw(true) 
-	        })
-	    },
-	    save: function(score,name) {
-	    	console.log("saving...",Score.current)
-	        return m.request({
-	            method: "GET",
-	            url: "_ah/api/myApi/v1/addScore/"+score+"/"+name
-	        })
-	        .then(function(result) {
-	        	console.log("got:",result)
-	        	Score.loadList()
-	        })
-	    }
-	}
-
-var ScoreView = {
-  oninit: Score.loadList,
+var DiceView = {
   view: function() {
-   	return m('div', [
-	  m('div',{class:'subtitle'},"Top 10 Scores"),
-	  m('table', {class:'table is-striped'},[
-	    m('tr', [
-	      m('th', {width:"20px"}, "Name"),
-	      m('th', {width:"50px"}, "Score"),
-	    ]),
-	    Score.list.map(function(item) {
-	      return m("tr", [
-  	        m('td', m('label', item.properties.name)),
-	        m('td', m('label', item.properties.score)),
-	      ])
-	    })
-	   ])
-	 ])
+    return m('div', [
+      m('div', {class: 'subtitle'}, "Just play here"),
+      m("input[type=text][placeholder=name]", {
+        value: DiceGame.name,
+        class: 'input is-rounded',
+        oninput: function(e) {
+          DiceGame.name = e.target.value;
+        }
+      }),
+      m('div', {class: 'level'}, [
+        m('label', {class: 'level-item'}, "turn:" + DiceGame.turn),
+        m('label', {class: 'level-item'}, "score:" + DiceGame.score),
+      ]),
+      m('label', {class: 'label'}, "Dice 1:" + DiceGame.d1),
+      m('label', {class: 'label'}, "Dice 2:" + DiceGame.d2),
+      m('button', {
+        class: 'button is-link',
+        onclick: function(e) { DiceGame.play() }
+      }, "play"),
+    ]);
   }
 }
 
-var Hello = {
-   view: function() {
-   	return m('div', {class:'container'}, [
-           m("h1", {class: 'title'}, 'The Dice Game'),
-           m('div',{class: 'tile is-ancestor'},[
-               m("div", {class: 'tile'}, m('div',{class:'tile is-child box'},m(DiceView))),
-               m("div", {class: 'tile'}, m('div',{class:'tile is-child box'},m(ScoreView))),
-           ])
-       ])
-   }
+// Gestion des scores
+var Score = {
+  list: [],
+  myTop10List: [],
+
+  // Charger les scores globaux (Top 10)
+  loadList: function() {
+    return m.request({
+      method: "GET",
+      url: "_ah/api/myApi/v1/topscores/"
+    })
+    .then(function(result) {
+      Score.list = result.items;
+      console.log("Top 10 Scores:", result.items);
+    })
+    .catch(function(error) {
+      console.log("Error loading top scores:", error);
+    });
+  },
+
+  // Charger les 10 meilleurs scores personnels
+  loadMyTop10List: function() {
+    console.log("Loading top 10 scores for:", DiceGame.name);  // Log du nom utilisé
+    return m.request({
+      method: "GET",
+      url: "_ah/api/myApi/v1/myscores/" + DiceGame.name  // Utilisation correcte du nom
+    })
+    .then(function(result) {
+      Score.myTop10List = result.items;
+      console.log("My Top 10 Scores:", result.items);
+    })
+    .catch(function(error) {
+      console.log("Error loading my top 10 scores:", error);
+    });
+  },
+
+  // Sauvegarder un score
+  save: function(score, name) {
+    console.log("Saving score:", score, "for name:", name);  // Log pour suivi de la sauvegarde
+    return m.request({
+      method: "GET",
+      url: "_ah/api/myApi/v1/addScore/" + score + "/" + name
+    })
+    .then(function(result) {
+      console.log("Score saved:", result);
+      Score.loadList();         // Met à jour la liste des "Top 10 Scores" (globaux)
+      Score.loadMyTop10List();  // Met à jour "My Top 10 Scores" (locaux)
+    })
+    .catch(function(error) {
+      console.log("Error saving score:", error);
+    });
+  }
 }
 
+// Vue pour afficher les Top 10 Scores (globaux)
+var ScoreView = {
+  oninit: Score.loadList,
+  view: function() {
+    return m('div', [
+      m('div', {class: 'subtitle'}, "Top 10 Scores"),
+      m('table', {class: 'table is-striped'}, [
+        m('tr', [
+          m('th', {width: "20px"}, "Name"),
+          m('th', {width: "50px"}, "Score"),
+        ]),
+        Score.list.map(function(item) {
+          return m("tr", [
+            m('td', m('label', item.properties.name)),
+            m('td', m('label', item.properties.score)),
+          ])
+        })
+      ])
+    ]);
+  }
+}
 
-m.mount(document.body, Hello)	
+// Vue pour afficher My Top 10 Scores (personnels)
+var MyTop10ScoreView = {
+  oninit: function() { Score.loadMyTop10List(DiceGame.name); },
+  view: function() {
+    return m('div', [
+      m('div', {class: 'subtitle'}, "My Top 10 Scores"),
+      m('table', {class: 'table is-striped'}, [
+        m('tr', [
+          m('th', {width: "20px"}, "Name"),
+          m('th', {width: "50px"}, "Score"),
+        ]),
+        Score.myTop10List.map(function(item) {
+          return m("tr", [
+            m('td', m('label', item.properties.name)),
+            m('td', m('label', item.properties.score)),
+          ])
+        })
+      ])
+    ]);
+  }
+}
 
+// Vue principale
+var Hello = {
+  view: function() {
+    return m('div', {class: 'container'}, [
+      m("h1", {class: 'title'}, 'The Dice Game'),
+      m('div', {class: 'tile is-ancestor'}, [
+        m("div", {class: 'tile'}, m('div', {class: 'tile is-child box'}, m(DiceView))),
+        m("div", {class: 'tile'}, m('div', {class: 'tile is-child box'}, m(ScoreView))),
+        m("div", {class: 'tile'}, m('div', {class: 'tile is-child box'}, m(MyTop10ScoreView)))
+      ])
+    ]);
+  }
+}
+
+// Initialisation de l'application
+m.mount(document.body, Hello);
 
 </script>
 </body>
