@@ -1,3 +1,4 @@
+
 package foo;
 
 import java.util.Date;
@@ -89,17 +90,25 @@ public class ScoreEndpoint {
 		return result;
 	}
 
-	@ApiMethod(name = "myscores", httpMethod = HttpMethod.GET)
-	public List<Entity> myscores(@Named("name") String name) {
-		Query q = new Query("Score").setFilter(new FilterPredicate("name", FilterOperator.EQUAL, name)).addSort("score",
-				SortDirection.DESCENDING);
-        //Query q = new Query("Score").setFilter(new FilterPredicate("name", FilterOperator.EQUAL, name));
 
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		PreparedQuery pq = datastore.prepare(q);
-		List<Entity> result = pq.asList(FetchOptions.Builder.withLimit(10));
-		return result;
-	}
+	@ApiMethod(name = "myscores", httpMethod = HttpMethod.GET)
+public List<Entity> myscores(@Named("name") String name) {
+    // Log pour vérifier que le nom est bien reçu par l'API
+    System.out.println("API myscores called with name: " + name);
+
+    Query q = new Query("Score").setFilter(new FilterPredicate("name", FilterOperator.EQUAL, name))
+                                .addSort("score", SortDirection.DESCENDING);
+    
+    DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+    PreparedQuery pq = datastore.prepare(q);
+
+    List<Entity> result = pq.asList(FetchOptions.Builder.withLimit(10));
+
+    // Log pour vérifier combien de résultats ont été trouvés
+    System.out.println("Found " + result.size() + " scores for user: " + name);
+    
+    return result;
+}
 
 	@ApiMethod(name = "addScore", httpMethod = HttpMethod.GET)
 	public Entity addScore(@Named("score") int score, @Named("name") String name) throws UnauthorizedException {
