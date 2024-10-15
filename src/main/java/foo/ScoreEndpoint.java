@@ -92,53 +92,53 @@ public class ScoreEndpoint {
 
 
 	@ApiMethod(name = "myscores", httpMethod = HttpMethod.GET)
-public List<Entity> myscores(@Named("name") String name) {
-    // Log pour vérifier que le nom est bien reçu par l'API
-    System.out.println("API myscores called with name: " + name);
+	public List<Entity> myscores(@Named("name") String name) {
+		System.out.println("API myscores called with name: " + name);
+	
+		Query q = new Query("Score")
+				  .setFilter(new FilterPredicate("name", FilterOperator.EQUAL, name))
+				  .addSort("score", SortDirection.DESCENDING);
+	
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		PreparedQuery pq = datastore.prepare(q);
+	
+		List<Entity> result = pq.asList(FetchOptions.Builder.withLimit(10));
+	
+		System.out.println("Found " + result.size() + " scores for user: " + name);
+	
+		// Log les scores trouvés
+		for (Entity e : result) {
+			System.out.println("Score: " + e.getProperty("score") + ", Name: " + e.getProperty("name"));
+		}
+	
+		return result;
+	}
+	
 
-    Query q = new Query("Score").setFilter(new FilterPredicate("name", FilterOperator.EQUAL, name))
-                                .addSort("score", SortDirection.DESCENDING);
-    
+
+
+@ApiMethod(name = "addScoreSec", httpMethod = HttpMethod.GET)
+public Entity addScoreSec(User user, @Named("score") int score) throws UnauthorizedException {
+    if (user == null) {
+        throw new UnauthorizedException("Invalid credentials");
+    }
+
+    String userEmail = user.getEmail();  // Récupère l'email de l'utilisateur
+    System.out.println("Adding score for user: " + userEmail);
+
+    Entity e = new Entity("Score", userEmail + score);
+    e.setProperty("name", userEmail);
+    e.setProperty("score", score);
+
     DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-    PreparedQuery pq = datastore.prepare(q);
+    datastore.put(e);
 
-    List<Entity> result = pq.asList(FetchOptions.Builder.withLimit(10));
-
-    // Log pour vérifier combien de résultats ont été trouvés
-    System.out.println("Found " + result.size() + " scores for user: " + name);
-    
-    return result;
+    return e;
 }
 
-	@ApiMethod(name = "addScore", httpMethod = HttpMethod.GET)
-	public Entity addScore(@Named("score") int score, @Named("name") String name) throws UnauthorizedException {
-
-		Entity e = new Entity("Score", "" + name + score);
-		e.setProperty("name", name);
-		e.setProperty("score", score);
-
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		datastore.put(e);
-
-		return e;
-	}
 
 
-	@ApiMethod(name = "addScoreSec", httpMethod = HttpMethod.GET)
-	public Entity addScoreSec(User user,@Named("score") int score, @Named("name") String name) throws UnauthorizedException {
-		if (user == null) {
-			throw new UnauthorizedException("Invalid credentials");
-		}		
 
-		Entity e = new Entity("Score", "" + name + score);
-		e.setProperty("name", user.toString());
-		e.setProperty("score", score);
-
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-		datastore.put(e);
-
-		return e;
-	}
 
 	@ApiMethod(name = "postMessage", httpMethod = HttpMethod.POST)
 	public Entity postMessage(PostMessage pm) {
